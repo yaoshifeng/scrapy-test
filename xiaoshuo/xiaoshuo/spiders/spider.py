@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import scrapy, re
+# import xpath
 from enum import Enum, unique, IntEnum
 from xiaoshuo.items import XiaoshuoItem
 
@@ -33,6 +34,14 @@ class Novel_Info(IntEnum):
     ...
 
 
+# 对应channel_offset的位置
+offset_enum = \
+{
+    "type": 0,
+    "page": 1,
+}
+
+
 def getChannelTailUrl(type, page):
     return "/list/%s_%s.html" % (
         str(type),
@@ -40,7 +49,7 @@ def getChannelTailUrl(type, page):
     )
 
 
-def getChannelTailUrl(book_offset):
+def getBookTailUrl(book_offset):
     return "/book_%s.html" % (str(book_offset))
 
 
@@ -61,11 +70,11 @@ class spidernovel(scrapy.Spider):
     # 对应的 url = url + channel_tail_url
     # 第一个是类型频道码，第二个是对应类型的小说频道浏览页码
     channel_offset = [1, 1]
-    channel_tail_url = getChannelTailUrl(channel_offset)
+    channel_tail_url = getChannelTailUrl(channel_offset[offset_enum['type']], channel_offset[offset_enum['page']])
     # 对应的 url = url + book_tail_url
     # 类型频道url    **需要填补对应书码**
     book_offset = 0
-    book_tail_url = getChannelTailUrl(book_offset)
+    book_tail_url = getBookTailUrl(book_offset)
     # 对应的url = url + catalog_tail_url
     # 书记的章节频道 **需要填补对应的书码**
     catalog_offset = 0
@@ -86,15 +95,44 @@ class spidernovel(scrapy.Spider):
             # "http://www.quanshiwang.com/list/11_1.html",
         ]
         for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+            yield scrapy.Request(url=url, callback=self.listParse)
 
-    def parse(self, response):
+    def listParse(self, response):
+        # 现获取该类型最大页码的url字符串
+        maxpage = response.xpath('//a[contains(@class, "last")]/@href').extract()[0]
+
+        # 正则表达式从该字符串中提取url(group[0]:整个字符串,[1]往后是括号提取的信息,按顺序+1递增)
+        maxpage = re.search("[0-9]{1,2}_([0-9]{1,4}).html", maxpage).group(1)
+        # print("type:", type(maxpage), "page:", maxpage)
+
+        # 拼接并遍历对应小说类型网页的url:http://www.quanshuwang.com/list/1_(1~999).html
+        for self.channel_offset[offset_enum['page']] in range(1, int(maxpage)):
+            self.channel_offset[offset_enum['type']] = \
+                re.search(r'list/([0-9]{1,2})_[0-9]{1,4}.html', response.url).group(1)
+            # print("channel_type(int):", self.channel_offset[offset_enum['type']])
+
+            # 带入得到对应url的尾部:url + /list/1_1.html
+            self.channel_tail_url = \
+                getChannelTailUrl(
+                    self.channel_offset[offset_enum['type']],
+                    self.channel_offset[offset_enum['page']]
+                )
+            yield scrapy.Request(url=self.url + self.channel_tail_url, callback=self.channelParse)
+
+    def channelParse(self, response):
         url_list = response.xpath('//a[contains(@class, "l mr10")]/@href').extract()
-        temp = re.search(r'(\d)_(\d)', response.url)
-        self.channel_offset[0] = temp.group(1)
-        self.channel_offset[1] = temp.group(2)
-        for i in range(len(url_list)):
-            yield scrapy.Request(self.url + str(self.channel_offset[1] + 1), callback=self.parse)
-            # print(url_list[i])
 
-    # def parse_
+        # 得到改网页所有的小说浏览url:
+        for i in url_list:
+            # print("i:", i)
+
+            # 获取对应书的图书编码:/book_(123456).html
+            book_offset = re.search(r'/book_(.*).html', i)[1]
+            # print("book_offset:", book_offset)
+
+            self.book_tail_url = getBookTailUrl(book_offset)
+            yield scrapy.Request(self.url + self.book_tail_url, callback=self.bookParse)
+
+    def bookParse(self, response):
+        print("response:", response)
+        pass

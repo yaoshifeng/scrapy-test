@@ -4,5 +4,10 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="guiLibMS" />
+    <orderEntry type="module" module-name="paqu" />
+    <orderEntry type="module" module-name="pyqt5-master" />
+    <orderEntry type="module" module-name="GUI" />
+    <orderEntry type="module" module-name="untitled2" />
   </component>
 </module>

@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 import scrapy, re
-# import xpath
-from enum import Enum, unique, IntEnum
+from enum import unique, IntEnum
 from xiaoshuo.items import XiaoshuoItem
 
 
@@ -134,5 +133,26 @@ class spidernovel(scrapy.Spider):
             yield scrapy.Request(self.url + self.book_tail_url, callback=self.bookParse)
 
     def bookParse(self, response):
-        print("response:", response)
+
+        item = XiaoshuoItem()
+        # 小说类型
+        item['noveltype'] = response.xpath('//meta[contains(@property, "og:novel:category")]/@content').extract()[0]
+        # 小说作者
+        item['novelauthor'] = response.xpath('//meta[contains(@property, "og:novel:author")]/@content').extract()[0]
+        # 小说名字
+        item['novelname'] = response.xpath('//meta[contains(@property, "og:novel:book_name")]/@content').extract()[0]
+        # 小说连载状态
+        item['novelstatus'] = response.xpath('//meta[contains(@property, "og:novel:status")]/@content').extract()[0]
+        # 小说更新时间
+        item['updatetime'] = response.xpath('//meta[contains(@property, "og:novel:update_time")]/@content').extract()[0]
+        # 小说简介
+        item['novelsummary'] = "".join(response.xpath('//div[contains(@id, "waa")]/text()').extract())
+        # 小说链接
+        item['novelurl'] = response.xpath('//a[contains(@class, "reader")]/@href').extract()[0]
+
+        book_url = response.xpath('//a[contains(@class, "reader")]/@href').extract()[0]
+
+        yield scrapy.Request(book_url, callback=self.chapterListParser)
+
+    def chapterListParser(self, response):
         pass

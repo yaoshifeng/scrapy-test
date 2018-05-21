@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
 import scrapy, re
 from enum import unique, IntEnum
-from xiaoshuo.items import XiaoshuoItem
-
+from xiaoshuo.items import XiaoshuoItem, ChapterContentItem
 
 @unique
 class Novel_Type(IntEnum):
@@ -130,7 +129,7 @@ class spidernovel(scrapy.Spider):
             # print("book_offset:", book_offset)
 
             self.book_tail_url = getBookTailUrl(book_offset)
-            yield scrapy.Request(self.url + self.book_tail_url, callback=self.bookParse)
+            yield scrapy.Request(url=self.url + self.book_tail_url, callback=self.bookParse)
 
     def bookParse(self, response):
 
@@ -152,7 +151,16 @@ class spidernovel(scrapy.Spider):
 
         book_url = response.xpath('//a[contains(@class, "reader")]/@href').extract()[0]
 
-        yield scrapy.Request(book_url, callback=self.chapterListParser)
+        yield scrapy.Request(url=book_url, callback=self.chapterListParser)
 
     def chapterListParser(self, response):
-        pass
+        list = response.xpath('//div[contains(@class, "clearfix dirconone")]/li/a/@href').extract()
+        for chapter_url in list:
+            yield scrapy.Request(url=chapter_url, callback=self.chapterContentParser)
+        # pass
+
+    def chapterContentParser(self, response):
+        item = ChapterContentItem()
+        item['novelchaptertitle'] = response.xpath('//strong[contains(@class, "l jieqi_title")]/text()').extract()[0]
+        item['novelcontent'] = "".join(response.xpath('//div[contains(@id, "content")]/text()').extract())
+

@@ -163,4 +163,5 @@ class spidernovel(scrapy.Spider):
         item = ChapterContentItem()
         item['novelchaptertitle'] = response.xpath('//strong[contains(@class, "l jieqi_title")]/text()').extract()[0]
         item['novelcontent'] = "".join(response.xpath('//div[contains(@id, "content")]/text()').extract())
+        yield item
 

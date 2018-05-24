@@ -98,7 +98,7 @@ class DgPipeline(object):
 
         else:
             conn.execute("""
-                insert into novelinfo(noveltype, novelauthor, novelname, link, listUrl, updated) 
+                insert into novelinfo(id, noveltype, novelauthor, novelname, novelstatus, updated) 
                 values(%s, %s, %s, %s, %s, %s)
             """, (linkmd5id, item['noveltype'], item['novelauthor'], item['novelname'], item['novelstatus'], now))
 
